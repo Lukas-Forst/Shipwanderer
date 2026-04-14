@@ -4,6 +4,7 @@ import {
   Color,
   DirectionalLight,
   Group,
+  ImageLoader,
   Mesh,
   MeshStandardMaterial,
   Object3D,
@@ -20,9 +21,11 @@ import { OutlinePass } from "three/examples/jsm/postprocessing/OutlinePass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { Projectile } from "../entities/Projectile";
 import { Ship } from "../entities/Ship";
+import type { ShipSpriteOptions } from "../entities/Ship";
 import { AssetManager } from "./AssetManager";
 import { EnemyManager } from "./EnemyManager";
 import { ResourceManager } from "./ResourceManager";
+import { loadShipStackSliceImages } from "../visuals/shipTileStack";
 import { WorldManager } from "./WorldManager";
 
 type SplashParticle = { mesh: Mesh; life: number };
@@ -74,7 +77,24 @@ export class Game {
     const visualMode = this.assetManager.getVisualMode();
     const hull = visualMode === "model" ? await this.assetManager.createHull() : new Group();
     const cannon = visualMode === "model" ? await this.assetManager.createCannon() : new Group();
-    this.ship = new Ship(hull, cannon, visualMode);
+
+    const spriteOptions: ShipSpriteOptions = {};
+    if (visualMode === "sprite") {
+      spriteOptions.includeAltHullRow = new URLSearchParams(window.location.search).get("doubleHull") === "1";
+
+      const sliceImages = await loadShipStackSliceImages();
+      spriteOptions.stackSliceImages = sliceImages.length >= 3 ? sliceImages : null;
+
+      if (!spriteOptions.stackSliceImages) {
+        try {
+          spriteOptions.sheetImage = await new ImageLoader().loadAsync("/sprites/player_ship_stack.png");
+        } catch {
+          spriteOptions.sheetImage = null;
+        }
+      }
+    }
+
+    this.ship = new Ship(hull, cannon, visualMode, spriteOptions);
     this.scene.add(this.ship.mesh);
 
     this.enemyManager = new EnemyManager(this.scene, this.assetManager, this.worldManager.halfSize);

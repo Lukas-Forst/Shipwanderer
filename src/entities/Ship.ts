@@ -1,12 +1,17 @@
 import {
   BoxGeometry,
   CanvasTexture,
+  DoubleSide,
   Group,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
+  NearestFilter,
   Object3D,
   PlaneGeometry,
+  RGBAFormat,
+  SRGBColorSpace,
+  Texture,
   Vector2,
   Vector3,
 } from "three";
@@ -14,6 +19,20 @@ import { Enemy } from "../systems/EnemyManager";
 import type { VisualMode } from "../systems/AssetManager";
 import { Projectile } from "./Projectile";
 import { ProceduralLayerGenerator } from "../visuals/ProceduralLayerGenerator";
+import { buildStackTexturesFromSheet, getPlayerShipStackCells } from "../visuals/shipSpriteSheet";
+import type { ShipStackSliceSource } from "../visuals/shipTileStack";
+
+export type ShipSpriteOptions = {
+  /**
+   * Full-size slice PNGs (`public/ship/tile000.png`, …) bottom → top.
+   * Takes precedence over `sheetImage` when at least three valid slices load.
+   */
+  stackSliceImages?: ShipStackSliceSource[] | null;
+  /** Combined sprite sheet (`public/sprites/player_ship_stack.png`) if no tile slices. */
+  sheetImage?: HTMLImageElement | null;
+  /** Inserts sheet row 2 between hull and cabin for a thicker hull (see `?doubleHull=1`). */
+  includeAltHullRow?: boolean;
+};
 
 type InputState = {
   up: boolean;
@@ -55,11 +74,29 @@ export class Ship {
   private readonly stackBaseY = 0.2;
   private readonly layerGenerator = new ProceduralLayerGenerator();
   private readonly visualYawOffset = Math.PI / 2;
+  /** GPU textures we created for the stack (tiles or cropped sheet); disposed in `dispose`. */
+  private readonly stackOwnedTextures: Texture[] = [];
 
-  public constructor(hullModel: Object3D, cannonModel: Object3D, visualMode: VisualMode) {
+  public constructor(
+    hullModel: Object3D,
+    cannonModel: Object3D,
+    visualMode: VisualMode,
+    private readonly spriteOptions: ShipSpriteOptions = {},
+  ) {
     this.stackGroup.name = "stackGroup";
     if (visualMode === "sprite") {
-      this.buildProceduralStack();
+      const slices = this.spriteOptions.stackSliceImages ?? null;
+      if (slices && slices.length >= 3) {
+        this.buildStackFromSliceImages(slices);
+      } else {
+        const sheet = this.spriteOptions.sheetImage ?? null;
+        if (sheet) {
+          const cells = getPlayerShipStackCells(this.spriteOptions.includeAltHullRow ?? false);
+          this.buildSpriteSheetStack(sheet, cells);
+        } else {
+          this.buildProceduralStack();
+        }
+      }
       this.stackGroup.rotation.y = this.visualYawOffset;
       this.mesh.add(this.stackGroup);
       this.mesh.position.y = this.stackBaseY;
@@ -79,6 +116,7 @@ export class Ship {
   public dispose(): void {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    this.disposeOwnedStackLayers();
   }
 
   public update(deltaSeconds: number, moveForward: Vector3, moveRight: Vector3): void {
@@ -219,8 +257,84 @@ export class Ship {
     this.stackGroup.scale.set(3.25, 0.9, 3.25);
   }
 
+  private buildStackFromSliceImages(slices: ShipStackSliceSource[]): void {
+    const layerCount = slices.length;
+    const dy = layerCount >= 20 ? 0.016 : layerCount >= 15 ? 0.019 : 0.024;
+
+    for (let i = 0; i < layerCount; i += 1) {
+      const image = slices[i];
+      const texture = new Texture(image);
+      texture.format = RGBAFormat;
+      texture.colorSpace = SRGBColorSpace;
+      texture.magFilter = NearestFilter;
+      texture.minFilter = NearestFilter;
+      texture.premultiplyAlpha = false;
+      texture.needsUpdate = true;
+      this.stackOwnedTextures.push(texture);
+
+      const iw = image instanceof HTMLCanvasElement ? image.width : image.naturalWidth;
+      const ih = image instanceof HTMLCanvasElement ? image.height : image.naturalHeight;
+      const aspect = iw / Math.max(1, ih);
+      const layer = this.createStackLayerFromTexture(texture, i, i * dy, aspect);
+      layer.rotation.x = -Math.PI / 2;
+      this.stackGroup.add(layer);
+    }
+
+    const squashY = layerCount >= 20 ? 0.62 : layerCount >= 15 ? 0.66 : 0.72;
+    this.stackGroup.scale.set(2.75, squashY, 2.75);
+  }
+
+  private buildSpriteSheetStack(
+    image: HTMLImageElement,
+    cells: readonly (readonly [number, number])[],
+  ): void {
+    const textures = buildStackTexturesFromSheet(image, cells);
+    this.stackOwnedTextures.push(...textures);
+
+    const layerCount = textures.length;
+    // Tight stepping so the stack reads like classic sprite-sandwich / isometric refs
+    // (many thin slices, small world-space gap between layers).
+    const dy = layerCount >= 15 ? 0.024 : 0.03;
+
+    for (let i = 0; i < layerCount; i += 1) {
+      const texture = textures[i];
+      const canvas = texture.image as HTMLCanvasElement;
+      const aspect = canvas.width / Math.max(1, canvas.height);
+      const layer = this.createStackLayerFromTexture(texture, i, i * dy, aspect);
+      layer.rotation.x = -Math.PI / 2;
+      this.stackGroup.add(layer);
+    }
+
+    const squashY = layerCount >= 15 ? 0.68 : 0.74;
+    this.stackGroup.scale.set(3.05, squashY, 3.05);
+  }
+
+  private disposeOwnedStackLayers(): void {
+    if (this.stackOwnedTextures.length === 0) {
+      return;
+    }
+
+    for (const child of this.stackGroup.children) {
+      const mesh = child as Mesh;
+      const geometry = mesh.geometry as PlaneGeometry | undefined;
+      const material = mesh.material as MeshStandardMaterial | undefined;
+      geometry?.dispose();
+      if (material) {
+        const map = material.map;
+        if (map) {
+          material.map = null;
+          map.dispose();
+        }
+        material.dispose();
+      }
+    }
+    this.stackGroup.clear();
+    this.stackOwnedTextures.length = 0;
+  }
+
   private createStackLayer(canvas: HTMLCanvasElement, renderOrder: number, y: number): Mesh {
     const texture = new CanvasTexture(canvas);
+    texture.format = RGBAFormat;
     texture.needsUpdate = true;
 
     const material = new MeshStandardMaterial({
@@ -228,10 +342,34 @@ export class Ship {
       transparent: true,
       depthWrite: false,
       depthTest: true,
-      alphaTest: 0.05,
+      alphaTest: 0.5,
+      side: DoubleSide,
+      premultipliedAlpha: false,
     });
 
     const layer = new Mesh(new PlaneGeometry(1, 1), material);
+    layer.position.y = y;
+    layer.renderOrder = renderOrder;
+    return layer;
+  }
+
+  private createStackLayerFromTexture(
+    texture: Texture,
+    renderOrder: number,
+    y: number,
+    aspect: number,
+  ): Mesh {
+    const material = new MeshStandardMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      alphaTest: 0.5,
+      side: DoubleSide,
+      premultipliedAlpha: false,
+    });
+
+    const layer = new Mesh(new PlaneGeometry(aspect, 1), material);
     layer.position.y = y;
     layer.renderOrder = renderOrder;
     return layer;
