@@ -181,6 +181,7 @@ export class Ship {
 
     if (this.stackGroup.children.length > 0) {
       this.stackGroup.position.y = Math.sin(this.stackFloatTime * 2.1) * 0.02;
+      this.detailGroup.position.y = this.stackGroup.position.y;
     }
 
     this.splashAnchor.copy(this.mesh.position).add(this.splashOffset);
@@ -297,33 +298,33 @@ export class Ship {
     const plateMaterial = new MeshStandardMaterial({ color: 0x3e434d, roughness: 0.66, metalness: 0.26 });
 
     const rearFunnel = new Mesh(new CylinderGeometry(0.12, 0.16, 0.68, 10), funnelMaterial);
-    rearFunnel.position.set(-0.38, 0.82, 0.1);
+    rearFunnel.position.set(-0.38, 0.9, 0.1);
     this.detailGroup.add(rearFunnel);
     this.spriteDetailMeshes.push(rearFunnel);
 
     const frontFunnel = new Mesh(new CylinderGeometry(0.1, 0.14, 0.58, 10), funnelMaterial);
-    frontFunnel.position.set(0.3, 0.7, -0.2);
+    frontFunnel.position.set(0.3, 0.78, -0.2);
     this.detailGroup.add(frontFunnel);
     this.spriteDetailMeshes.push(frontFunnel);
 
     const cabin = new Mesh(new BoxGeometry(0.5, 0.2, 0.36), cabinMaterial);
     cabin.scale.set(1.4, 1, 1.2);
-    cabin.position.set(-0.04, 0.56, 0.06);
+    cabin.position.set(-0.04, 0.6, 0.06);
     this.detailGroup.add(cabin);
     this.spriteDetailMeshes.push(cabin);
 
     const roof = new Mesh(new BoxGeometry(0.42, 0.08, 0.3), brassMaterial);
-    roof.position.set(-0.04, 0.7, 0.06);
+    roof.position.set(-0.04, 0.74, 0.06);
     this.detailGroup.add(roof);
     this.spriteDetailMeshes.push(roof);
 
     const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateLeft.position.set(-0.9, 0.5, 0.06);
+    sidePlateLeft.position.set(-0.9, 0.54, 0.06);
     this.detailGroup.add(sidePlateLeft);
     this.spriteDetailMeshes.push(sidePlateLeft);
 
     const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateRight.position.set(0.9, 0.5, 0.06);
+    sidePlateRight.position.set(0.9, 0.54, 0.06);
     this.detailGroup.add(sidePlateRight);
     this.spriteDetailMeshes.push(sidePlateRight);
   }
