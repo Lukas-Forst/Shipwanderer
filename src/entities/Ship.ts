@@ -49,6 +49,10 @@ export class Ship {
   public readonly velocity = new Vector3();
   public readonly splashAnchor = new Vector3();
   public readonly stackGroup = new Group();
+
+  public get currentVisualMode(): VisualMode {
+    return this.visualMode;
+  }
   private readonly detailGroup = new Group();
 
   private readonly input: InputState = { up: false, down: false, left: false, right: false };
@@ -288,39 +292,43 @@ export class Ship {
   }
 
   private addSpriteDeckDetails(): void {
+    // Disabled — 3D overlays don't align with the sprite stack's world-space scale.
+    // Revisit when switching to a GLTF model.
+    return;
+
     const funnelMaterial = new MeshStandardMaterial({ color: 0x252b37, roughness: 0.7, metalness: 0.16 });
     const brassMaterial = new MeshStandardMaterial({ color: 0x956a3f, roughness: 0.52, metalness: 0.32 });
     const cabinMaterial = new MeshStandardMaterial({ color: 0xb19678, roughness: 0.82, metalness: 0.04 });
     const plateMaterial = new MeshStandardMaterial({ color: 0x3e434d, roughness: 0.66, metalness: 0.26 });
 
     const rearFunnel = new Mesh(new CylinderGeometry(0.12, 0.16, 0.68, 10), funnelMaterial);
-    rearFunnel.position.set(-0.08, 0.55, 0.06);
+    rearFunnel.position.set(-0.45, 0.72, 0.10);
     this.detailGroup.add(rearFunnel);
     this.spriteDetailMeshes.push(rearFunnel);
 
     const frontFunnel = new Mesh(new CylinderGeometry(0.1, 0.14, 0.58, 10), funnelMaterial);
-    frontFunnel.position.set(0.1, 0.5, -0.12);
+    frontFunnel.position.set(0.35, 0.65, -0.18);
     this.detailGroup.add(frontFunnel);
     this.spriteDetailMeshes.push(frontFunnel);
 
     const cabin = new Mesh(new BoxGeometry(0.5, 0.2, 0.36), cabinMaterial);
-    cabin.scale.set(1.4, 1, 1.2);
-    cabin.position.set(0, 0.44, 0.02);
+    cabin.scale.set(1.4, 0.8, 1.2);
+    cabin.position.set(0, 0.52, 0);
     this.detailGroup.add(cabin);
     this.spriteDetailMeshes.push(cabin);
 
     const roof = new Mesh(new BoxGeometry(0.42, 0.08, 0.3), brassMaterial);
-    roof.position.set(0, 0.56, 0.02);
+    roof.position.set(0, 0.64, 0);
     this.detailGroup.add(roof);
     this.spriteDetailMeshes.push(roof);
 
     const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateLeft.position.set(-0.28, 0.38, 0);
+    sidePlateLeft.position.set(-0.85, 0.45, 0);
     this.detailGroup.add(sidePlateLeft);
     this.spriteDetailMeshes.push(sidePlateLeft);
 
     const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateRight.position.set(0.28, 0.38, 0);
+    sidePlateRight.position.set(0.85, 0.45, 0);
     this.detailGroup.add(sidePlateRight);
     this.spriteDetailMeshes.push(sidePlateRight);
   }
@@ -335,7 +343,8 @@ export class Ship {
     });
     const shadow = new Mesh(geometry, material);
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = -0.04;
+    shadow.position.y = 0.02;
+    shadow.renderOrder = 1;
     this.mesh.add(shadow);
     return shadow;
   }

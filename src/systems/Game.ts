@@ -500,8 +500,12 @@ export class Game {
   }
 
   private updateOutlineTargets(): void {
-    const targets: Object3D[] = [this.ship.mesh];
-    // Enemies excluded: depthWrite:false sprite stacks can become solid-black in outline pass.
+    const targets: Object3D[] = [];
+    // depthWrite:false sprite stacks go solid-black in OutlinePass — same
+    // reason enemies are excluded. Only include ship mesh in model mode.
+    if (this.ship.currentVisualMode !== "sprite") {
+      targets.push(this.ship.mesh);
+    }
     targets.push(...this.resourceManager.getScrapMeshes());
     this.outlinePass.selectedObjects = targets;
   }

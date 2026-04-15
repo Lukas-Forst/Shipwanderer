@@ -21,12 +21,8 @@ export class ProceduralLayerGenerator {
   }
 
   private drawSteamboatLayer(ctx: CanvasRenderingContext2D, index: number, _totalLayers: number): void {
-    const hullDark    = "#1e130b";
-    const hullMid     = "#4a3020";
-    const deckDark    = "#7c5538";
-    const deckLight   = "#9c7a5e";
-    const detailLight = "#8f969f";
-    const detailDark  = "#353b44";
+    const hullDark  = "#1e130b";
+    const detailDark = "#353b44";
 
     // ── Zone A: Hull (layers 0–3) ─────────────────────────────────────────
     // 10 px width taper + 8 px bow/stern movement so the isometric camera
@@ -36,7 +32,8 @@ export class ProceduralLayerGenerator {
       const width  = 26 - t * 10;   // 26 → 16
       const bowY   =  8 + t *  8;   //  8 → 16
       const sternY = 55 - t *  8;   // 55 → 47
-      this.drawTaperedHull(ctx, width, bowY, sternY, index < 2 ? hullDark : hullMid);
+      // Fix 2: keel 0–1 very dark, hull sides 2–3 stepped up from keel
+      this.drawTaperedHull(ctx, width, bowY, sternY, index < 2 ? "#3a2410" : "#5c3820");
       if (index <= 1) {
         ctx.fillStyle = "#120b07";
         ctx.fillRect(32 - width * 0.8, 32, width * 1.6, 2);
@@ -45,26 +42,40 @@ export class ProceduralLayerGenerator {
     }
 
     // ── Zone B: Deck (layers 4–9) ─────────────────────────────────────────
-    // Hull continues to narrow; planks appear; wheelhouse appears on 7–9
-    // and itself shrinks each step so it never reads as a silo.
+    // Split into lower (4–5) and upper (6–9) sub-zones so the upper deck
+    // tapers noticeably faster and reads as a distinct surface.
     if (index <= 9) {
-      const t      = (index - 4) / 5;   // 0 → 1 across 6 steps
-      const width  = 15 - t * 8;        // 15 → 7
-      const bowY   = 17 + t * 6;        // 17 → 23
-      const sternY = 47 - t * 7;        // 47 → 40
-      const layerColor =
-        index <= 5 ? hullMid :
-        index <= 7 ? deckDark :
-                     deckLight;
+      let width: number, bowY: number, sternY: number, layerColor: string;
+
+      if (index <= 5) {
+        // Fix 1/2: lower transition — gentle taper, hull-side colour, no planks yet.
+        const t  = index - 4;              // 0, 1
+        width    = 15 - t * 2;            // 15 → 13
+        bowY     = 17 + t * 2;            // 17 → 19
+        sternY   = 47 - t * 2;            // 47 → 45
+        layerColor = "#5c3820";           // hull-side mid brown
+      } else {
+        // Fix 1/2: upper deck — aggressive taper, distinct lighter colours.
+        const t  = (index - 6) / 3;       // 0 → 1 over 4 steps
+        width    = 13 - t * 6;            // 13 → 7
+        bowY     = 19 + t * 4;            // 19 → 23
+        sternY   = 45 - t * 5;            // 45 → 40
+        layerColor = index <= 7 ? "#7c5538" : "#9c7a5e";
+      }
+
       this.drawTaperedHull(ctx, width, bowY, sternY, layerColor);
-      this.drawPlankLines(ctx, detailDark);
+
+      // Fix 3: plank lines only on upper deck layers — not the lower hull sides.
+      if (index >= 6) {
+        this.drawPlankLines(ctx, detailDark);
+      }
 
       if (index >= 7) {
         const step = index - 7;          // 0, 1, 2
         const whW  = 14 - step * 2;      // 14 → 10
-        const whH  =  7 - step * 1;      //  7 →  5
+        const whH  =  7 - step;          //  7 →  5
         const whX  = 32 - whW / 2;
-        ctx.fillStyle = "#c4a882";        // warm tan — was detailLight (grey)
+        ctx.fillStyle = "#c4a882";
         ctx.fillRect(whX, 38, whW, whH);
         if (whW >= 12) {
           ctx.fillStyle = detailDark;
@@ -77,11 +88,10 @@ export class ProceduralLayerGenerator {
     }
 
     // ── Zone C: Cabin roof (layers 10–13) ─────────────────────────────────
-    // No hull silhouette — drawTaperedHull here produced a visible brown oval
-    // above the wheelhouse. Just a shrinking roof strip in warm wood tone.
+    // No hull silhouette. Shrinking roof strip in the brightest deck tone.
     if (index <= 13) {
       const roofW = Math.max(2, 8 - (index - 10) * 2);   // 8 → 2
-      ctx.fillStyle = deckDark;
+      ctx.fillStyle = "#b07840";
       ctx.fillRect(32 - roofW / 2, 37, roofW, 3);
       return;
     }
