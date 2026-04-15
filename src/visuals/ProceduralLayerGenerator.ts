@@ -21,13 +21,12 @@ export class ProceduralLayerGenerator {
   }
 
   private drawSteamboatLayer(ctx: CanvasRenderingContext2D, index: number, totalLayers: number): void {
-    // Palette requested by user.
-    const hullDark = "#4b3621";
-    const hullMid = "#654321";
-    const deckDark = "#8b5a2b";
-    const deckLight = "#d2b48c";
-    const detailLight = "#a0a0a0";
-    const detailDark = "#404040";
+    const hullDark = "#2f241b";
+    const hullMid = "#473528";
+    const deckDark = "#6c4b34";
+    const deckLight = "#9c7a5e";
+    const detailLight = "#8f969f";
+    const detailDark = "#353b44";
 
     // Simple boat profile: lower hull, deck, then compact stern cabin.
     if (index <= 4) {
@@ -53,6 +52,8 @@ export class ProceduralLayerGenerator {
         ctx.fillRect(26, 39, 3, 3);
         ctx.fillRect(31, 39, 3, 3);
         ctx.fillRect(36, 39, 3, 3);
+        ctx.fillStyle = "#8f5a3f";
+        ctx.fillRect(24, 44, 16, 2);
       }
       return;
     }
@@ -97,19 +98,41 @@ export class ProceduralLayerGenerator {
 
   private drawEnemyLayer(ctx: CanvasRenderingContext2D, index: number, totalLayers: number): void {
     const t = index / Math.max(1, totalLayers - 1);
-    const bright = 90 + Math.floor((1 - t) * 70);
-    ctx.fillStyle = `rgb(${bright + 70}, ${Math.floor(bright * 0.3)}, ${Math.floor(bright * 0.3)})`;
+    const bright = 82 + Math.floor((1 - t) * 66);
+    ctx.fillStyle = `rgb(${bright + 56}, ${Math.floor(bright * 0.24)}, ${Math.floor(bright * 0.25)})`;
 
     const center = 32;
-    const radius = 16 - t * 3;
+    const radius = 17 - t * 3.5;
+    const bowSpike = 7 + t * 1.5;
+    const sternInset = 6 + t * 1.8;
     ctx.beginPath();
-    ctx.moveTo(center, center - (radius + 5));
-    ctx.lineTo(center + radius, center - 1);
-    ctx.lineTo(center + radius - 2, center + radius);
-    ctx.lineTo(center, center + (radius - 4));
-    ctx.lineTo(center - radius + 2, center + radius);
-    ctx.lineTo(center - radius, center - 1);
+    ctx.moveTo(center, center - (radius + bowSpike));
+    ctx.lineTo(center + (radius - 1), center - 2);
+    ctx.lineTo(center + radius, center + radius * 0.75);
+    ctx.lineTo(center + 3, center + (radius - sternInset));
+    ctx.lineTo(center - 3, center + (radius - sternInset));
+    ctx.lineTo(center - radius, center + radius * 0.75);
+    ctx.lineTo(center - (radius - 1), center - 2);
     ctx.closePath();
     ctx.fill();
+
+    if (t > 0.28 && t < 0.9) {
+      ctx.fillStyle = "rgba(44, 20, 20, 0.62)";
+      ctx.beginPath();
+      ctx.moveTo(center, center - (radius + bowSpike - 4));
+      ctx.lineTo(center + (radius - 5), center);
+      ctx.lineTo(center + (radius - 4), center + radius * 0.62);
+      ctx.lineTo(center, center + (radius - sternInset + 1));
+      ctx.lineTo(center - (radius - 4), center + radius * 0.62);
+      ctx.lineTo(center - (radius - 5), center);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(215, 123, 84, 0.9)";
+      ctx.fillRect(center - 6, center - 3, 4, 3);
+      ctx.fillRect(center + 2, center - 3, 4, 3);
+      ctx.fillStyle = "rgba(92, 24, 19, 0.84)";
+      ctx.fillRect(center - 6, center + 2, 12, 2);
+    }
   }
 }

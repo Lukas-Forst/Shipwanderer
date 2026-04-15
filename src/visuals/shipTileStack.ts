@@ -1,7 +1,10 @@
 import { ImageLoader } from "three";
 
-/** One PNG per vertical slice, named `tile000.png` … under `public/ship/`. */
-const TILE_PATH = (index: number) => `/ship/tile${String(index).padStart(3, "0")}.png`;
+/** One PNG per vertical slice, accepts `tile000.png` and `tile_boat000.png` naming. */
+const TILE_PATHS = (index: number) => {
+  const id = String(index).padStart(3, "0");
+  return [`/ship/tile_boat${id}.png`, `/ship/tile${id}.png`] as const;
+};
 
 /** Skip corrupt or placeholder exports (e.g. 1×512 strips). */
 const MIN_SLICE_WIDTH = 8;
@@ -132,13 +135,22 @@ export async function loadShipStackSliceImages(): Promise<ShipStackSliceSource[]
   let consecutiveMisses = 0;
 
   for (let i = 0; i <= MAX_TILE_INDEX; i += 1) {
-    try {
-      const image = await loader.loadAsync(TILE_PATH(i));
-      consecutiveMisses = 0;
-      if (image.naturalWidth >= MIN_SLICE_WIDTH && image.naturalHeight >= MIN_SLICE_HEIGHT) {
-        slices.push(applyEdgeFloodTransparency(image));
+    let loaded = false;
+    for (const tilePath of TILE_PATHS(i)) {
+      try {
+        const image = await loader.loadAsync(tilePath);
+        loaded = true;
+        consecutiveMisses = 0;
+        if (image.naturalWidth >= MIN_SLICE_WIDTH && image.naturalHeight >= MIN_SLICE_HEIGHT) {
+          slices.push(applyEdgeFloodTransparency(image));
+        }
+        break;
+      } catch {
+        // Try the next naming variant.
       }
-    } catch {
+    }
+
+    if (!loaded) {
       if (i === 0) {
         return [];
       }

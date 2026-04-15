@@ -1,6 +1,7 @@
 import {
   BoxGeometry,
   CanvasTexture,
+  CylinderGeometry,
   DoubleSide,
   Group,
   MathUtils,
@@ -16,6 +17,7 @@ import {
   Vector3,
 } from "three";
 import { Enemy } from "../systems/EnemyManager";
+import type { EnemyVisualStylePreset } from "../systems/EnemyManager";
 import type { VisualMode } from "../systems/AssetManager";
 import { Projectile } from "./Projectile";
 import { ProceduralLayerGenerator } from "../visuals/ProceduralLayerGenerator";
@@ -76,6 +78,7 @@ export class Ship {
   private readonly visualYawOffset = Math.PI / 2;
   /** GPU textures we created for the stack (tiles or cropped sheet); disposed in `dispose`. */
   private readonly stackOwnedTextures: Texture[] = [];
+  private visualMode: VisualMode;
 
   public constructor(
     hullModel: Object3D,
@@ -83,6 +86,7 @@ export class Ship {
     visualMode: VisualMode,
     private readonly spriteOptions: ShipSpriteOptions = {},
   ) {
+    this.visualMode = visualMode;
     this.stackGroup.name = "stackGroup";
     if (visualMode === "sprite") {
       const slices = this.spriteOptions.stackSliceImages ?? null;
@@ -98,6 +102,7 @@ export class Ship {
         }
       }
       this.stackGroup.rotation.y = this.visualYawOffset;
+      this.addSpriteDeckDetails();
       this.mesh.add(this.stackGroup);
       this.mesh.position.y = this.stackBaseY;
     } else {
@@ -232,6 +237,35 @@ export class Ship {
     return Math.hypot(this.velocity.x, this.velocity.z);
   }
 
+  public applyVisualStyle(style: EnemyVisualStylePreset): void {
+    const preset =
+      style === "clean"
+        ? { tint: 0xf2efe9, emissive: 0x14181f, emissiveIntensity: 0.03, roughness: 0.52, metalness: 0.2 }
+        : style === "stormy"
+          ? { tint: 0xb6c0cc, emissive: 0x0b1723, emissiveIntensity: 0.13, roughness: 0.74, metalness: 0.16 }
+          : { tint: 0xd3c0ad, emissive: 0x12151d, emissiveIntensity: 0.07, roughness: 0.64, metalness: 0.2 };
+
+    const target = this.visualMode === "sprite" ? this.stackGroup : this.mesh;
+    target.traverse((child) => {
+      const childMesh = child as Mesh;
+      if (!("material" in childMesh)) {
+        return;
+      }
+      const mat = childMesh.material;
+      const materials = Array.isArray(mat) ? mat : [mat];
+      for (const material of materials) {
+        if (!(material instanceof MeshStandardMaterial)) {
+          continue;
+        }
+        material.color.setHex(preset.tint);
+        material.emissive.setHex(preset.emissive);
+        material.emissiveIntensity = preset.emissiveIntensity;
+        material.roughness = preset.roughness;
+        material.metalness = preset.metalness;
+      }
+    });
+  }
+
   private createHullPiece(): Group {
     const geometry = new BoxGeometry(2, 0.9, 2);
     const material = new MeshStandardMaterial({ color: 0x6b5b4d });
@@ -241,6 +275,37 @@ export class Ship {
     const group = new Group();
     group.add(mesh);
     return group;
+  }
+
+  private addSpriteDeckDetails(): void {
+    const funnelMaterial = new MeshStandardMaterial({ color: 0x252b37, roughness: 0.7, metalness: 0.16 });
+    const brassMaterial = new MeshStandardMaterial({ color: 0x956a3f, roughness: 0.52, metalness: 0.32 });
+    const cabinMaterial = new MeshStandardMaterial({ color: 0xb19678, roughness: 0.82, metalness: 0.04 });
+    const plateMaterial = new MeshStandardMaterial({ color: 0x3e434d, roughness: 0.66, metalness: 0.26 });
+
+    const rearFunnel = new Mesh(new CylinderGeometry(0.12, 0.16, 0.68, 10), funnelMaterial);
+    rearFunnel.position.set(-0.22, 0.34, -0.05);
+    this.stackGroup.add(rearFunnel);
+
+    const frontFunnel = new Mesh(new CylinderGeometry(0.1, 0.14, 0.58, 10), funnelMaterial);
+    frontFunnel.position.set(0.18, 0.3, 0.1);
+    this.stackGroup.add(frontFunnel);
+
+    const cabin = new Mesh(new BoxGeometry(0.5, 0.2, 0.36), cabinMaterial);
+    cabin.position.set(0.03, 0.2, -0.02);
+    this.stackGroup.add(cabin);
+
+    const roof = new Mesh(new BoxGeometry(0.42, 0.08, 0.3), brassMaterial);
+    roof.position.set(0.03, 0.31, -0.02);
+    this.stackGroup.add(roof);
+
+    const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.11, 0.42), plateMaterial);
+    sidePlateLeft.position.set(-0.34, 0.08, -0.02);
+    this.stackGroup.add(sidePlateLeft);
+
+    const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.11, 0.42), plateMaterial);
+    sidePlateRight.position.set(0.34, 0.08, -0.02);
+    this.stackGroup.add(sidePlateRight);
   }
 
   private buildProceduralStack(): void {
@@ -259,7 +324,8 @@ export class Ship {
 
   private buildStackFromSliceImages(slices: ShipStackSliceSource[]): void {
     const layerCount = slices.length;
-    const dy = layerCount >= 20 ? 0.016 : layerCount >= 15 ? 0.019 : 0.024;
+    // Push more vertical separation for lower slice counts so ships do not read as flat pancakes.
+    const dy = layerCount >= 22 ? 0.018 : layerCount >= 18 ? 0.023 : layerCount >= 14 ? 0.031 : 0.036;
 
     for (let i = 0; i < layerCount; i += 1) {
       const image = slices[i];
@@ -280,8 +346,8 @@ export class Ship {
       this.stackGroup.add(layer);
     }
 
-    const squashY = layerCount >= 20 ? 0.62 : layerCount >= 15 ? 0.66 : 0.72;
-    this.stackGroup.scale.set(2.75, squashY, 2.75);
+    const yScale = layerCount >= 22 ? 0.78 : layerCount >= 18 ? 0.9 : layerCount >= 14 ? 1.05 : 1.16;
+    this.stackGroup.scale.set(2.75, yScale, 2.75);
   }
 
   private buildSpriteSheetStack(
@@ -294,7 +360,7 @@ export class Ship {
     const layerCount = textures.length;
     // Tight stepping so the stack reads like classic sprite-sandwich / isometric refs
     // (many thin slices, small world-space gap between layers).
-    const dy = layerCount >= 15 ? 0.024 : 0.03;
+    const dy = layerCount >= 20 ? 0.022 : layerCount >= 15 ? 0.028 : 0.034;
 
     for (let i = 0; i < layerCount; i += 1) {
       const texture = textures[i];
@@ -305,12 +371,12 @@ export class Ship {
       this.stackGroup.add(layer);
     }
 
-    const squashY = layerCount >= 15 ? 0.68 : 0.74;
-    this.stackGroup.scale.set(3.05, squashY, 3.05);
+    const yScale = layerCount >= 20 ? 0.86 : layerCount >= 15 ? 0.97 : 1.08;
+    this.stackGroup.scale.set(3.05, yScale, 3.05);
   }
 
   private disposeOwnedStackLayers(): void {
-    if (this.stackOwnedTextures.length === 0) {
+    if (this.stackGroup.children.length === 0) {
       return;
     }
 

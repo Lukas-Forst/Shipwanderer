@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-04-15T13:21:22.054Z",
+  "dryRun": false,
+  "source": {
+    "shipSlicesDir": "public/ship",
+    "playerSheetPath": "public/sprites/player_ship_stack.png",
+    "sliceCount": 14
+  },
+  "styles": [
+    {
+      "style": "industrial",
+      "outputDir": "public/generated/styles/industrial",
+      "slices": 14,
+      "playerSheet": "public/generated/styles/industrial/sprites/player_ship_stack.png"
+    },
+    {
+      "style": "clean",
+      "outputDir": "public/generated/styles/clean",
+      "slices": 14,
+      "playerSheet": "public/generated/styles/clean/sprites/player_ship_stack.png"
+    },
+    {
+      "style": "stormy",
+      "outputDir": "public/generated/styles/stormy",
+      "slices": 14,
+      "playerSheet": "public/generated/styles/stormy/sprites/player_ship_stack.png"
+    }
+  ]
+}

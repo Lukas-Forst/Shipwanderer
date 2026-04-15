@@ -1,0 +1,14 @@
+{
+  "style": "stormy",
+  "generatedAt": "2026-04-15T13:21:22.563Z",
+  "source": {
+    "shipSlicesDir": "public/ship",
+    "playerSheetPath": "public/sprites/player_ship_stack.png"
+  },
+  "outputs": {
+    "shipSlicesDir": "public/generated/styles/stormy/ship",
+    "playerSheetPath": "public/generated/styles/stormy/sprites/player_ship_stack.png",
+    "sliceCount": 14
+  },
+  "processingMode": "copy"
+}

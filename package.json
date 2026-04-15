@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "art:build": "node scripts/art-pipeline.mjs",
+    "art:dry-run": "node scripts/art-pipeline.mjs --dry-run"
   },
   "devDependencies": {
     "@types/three": "^0.183.1",

@@ -18,8 +18,8 @@ export class SpriteStackFactory {
       width: 3.2,
       depth: 3.2,
       drawer: (ctx, t) => {
-        const shade = 34 + Math.floor((1 - t) * 36);
-        ctx.fillStyle = `rgb(${shade + 36}, ${shade + 24}, ${shade + 14})`;
+        const shade = 24 + Math.floor((1 - t) * 28);
+        ctx.fillStyle = `rgb(${shade + 34}, ${shade + 20}, ${shade + 12})`;
         this.drawShipHullSlice(ctx, t);
       },
     });
@@ -32,8 +32,8 @@ export class SpriteStackFactory {
       width: 2.1,
       depth: 2.1,
       drawer: (ctx, t) => {
-        const bright = 90 + Math.floor((1 - t) * 75);
-        ctx.fillStyle = `rgb(${bright + 70}, ${Math.floor(bright * 0.3)}, ${Math.floor(bright * 0.32)})`;
+        const bright = 80 + Math.floor((1 - t) * 68);
+        ctx.fillStyle = `rgb(${bright + 56}, ${Math.floor(bright * 0.24)}, ${Math.floor(bright * 0.26)})`;
         this.drawEnemySlice(ctx, t);
       },
     });
@@ -122,21 +122,54 @@ export class SpriteStackFactory {
     );
     ctx.closePath();
     ctx.fill();
+
+    if (t > 0.35 && t < 0.9) {
+      ctx.fillStyle = "rgba(180, 162, 136, 0.9)";
+      ctx.fillRect(center - 14, center - 4, 28, 10);
+      ctx.fillStyle = "rgba(48, 55, 68, 0.96)";
+      ctx.fillRect(center - 11, center - 2, 5, 4);
+      ctx.fillRect(center - 2, center - 2, 5, 4);
+      ctx.fillRect(center + 7, center - 2, 5, 4);
+      ctx.fillStyle = "rgba(143, 105, 67, 0.9)";
+      ctx.fillRect(center - 14, center + 2, 28, 2);
+    }
   }
 
   private drawEnemySlice(ctx: CanvasRenderingContext2D, t: number): void {
     const center = 64;
-    const r = 28 - t * 5;
-    const notch = 8 + t * 3;
+    const r = 30 - t * 6;
+    const bowSpike = 12 + t * 2;
+    const sternNotch = 10 + t * 2.5;
 
     ctx.beginPath();
-    ctx.moveTo(center, center - (r + notch));
-    ctx.lineTo(center + r, center - 2);
-    ctx.lineTo(center + (r - 3), center + r);
-    ctx.lineTo(center, center + (r - notch));
-    ctx.lineTo(center - (r - 3), center + r);
-    ctx.lineTo(center - r, center - 2);
+    ctx.moveTo(center, center - (r + bowSpike));
+    ctx.lineTo(center + (r - 3), center - 4);
+    ctx.lineTo(center + r, center + r * 0.72);
+    ctx.lineTo(center + 5, center + (r - sternNotch));
+    ctx.lineTo(center - 5, center + (r - sternNotch));
+    ctx.lineTo(center - r, center + r * 0.72);
+    ctx.lineTo(center - (r - 3), center - 4);
     ctx.closePath();
     ctx.fill();
+
+    if (t > 0.25 && t < 0.9) {
+      ctx.fillStyle = "rgba(40, 16, 14, 0.65)";
+      ctx.beginPath();
+      ctx.moveTo(center, center - (r + bowSpike - 6));
+      ctx.lineTo(center + (r - 8), center - 2);
+      ctx.lineTo(center + (r - 7), center + r * 0.62);
+      ctx.lineTo(center, center + (r - sternNotch + 2));
+      ctx.lineTo(center - (r - 7), center + r * 0.62);
+      ctx.lineTo(center - (r - 8), center - 2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(214, 121, 82, 0.9)";
+      ctx.fillRect(center - 10, center - 5, 6, 4);
+      ctx.fillRect(center - 2, center - 6, 4, 4);
+      ctx.fillRect(center + 4, center - 5, 6, 4);
+      ctx.fillStyle = "rgba(90, 22, 18, 0.85)";
+      ctx.fillRect(center - 8, center + 3, 16, 2);
+    }
   }
 }

@@ -103,3 +103,96 @@ body {
   color: #14354f;
   cursor: pointer;
 }
+
+.debug-hud {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 30;
+  min-width: 300px;
+  padding: 8px 10px;
+  border: 1px solid #1d3d57;
+  border-radius: 8px;
+  background: rgba(9, 23, 34, 0.82);
+  color: #c9ecff;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.debug-hud.hidden {
+  display: none;
+}
+
+.dev-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 32;
+  width: min(300px, 80vw);
+  padding: 10px;
+  border: 1px solid #1d3d57;
+  border-radius: 10px;
+  background: rgba(9, 23, 34, 0.92);
+  color: #d7f1ff;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+}
+
+.dev-panel.hidden {
+  display: none;
+}
+
+.dev-panel h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.dev-panel label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.dev-panel input[type="range"] {
+  width: 100%;
+}
+
+.dev-panel span {
+  color: #a7dbff;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.dev-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dev-panel button {
+  border: 1px solid #2f739f;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #123248;
+  color: #e5f6ff;
+  cursor: pointer;
+}
+
+.dev-style {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.dev-style-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.dev-style-buttons button.active {
+  background: #2a6488;
+  border-color: #6eb6e3;
+}

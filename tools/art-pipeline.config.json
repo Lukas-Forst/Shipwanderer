@@ -1,0 +1,11 @@
+{
+  "inputs": {
+    "shipSlicesDir": "public/ship",
+    "sliceFilePattern": "^(tile\\d{3}|tile_boat\\d{3})\\.png$",
+    "playerSheetPath": "public/sprites/player_ship_stack.png"
+  },
+  "outputs": {
+    "generatedRootDir": "public/generated/styles"
+  },
+  "styles": ["industrial", "clean", "stormy"]
+}

@@ -1,0 +1,14 @@
+{
+  "style": "clean",
+  "generatedAt": "2026-04-15T13:21:22.414Z",
+  "source": {
+    "shipSlicesDir": "public/ship",
+    "playerSheetPath": "public/sprites/player_ship_stack.png"
+  },
+  "outputs": {
+    "shipSlicesDir": "public/generated/styles/clean/ship",
+    "playerSheetPath": "public/generated/styles/clean/sprites/player_ship_stack.png",
+    "sliceCount": 14
+  },
+  "processingMode": "copy"
+}
