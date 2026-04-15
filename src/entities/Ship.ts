@@ -423,7 +423,7 @@ export class Ship {
     for (const child of this.stackGroup.children) {
       const mesh = child as Mesh;
       const geometry = mesh.geometry as PlaneGeometry | undefined;
-      const material = mesh.material as MeshStandardMaterial | undefined;
+      const material = mesh.material as MeshBasicMaterial | undefined;
       geometry?.dispose();
       if (material) {
         const map = material.map;
@@ -477,14 +477,13 @@ export class Ship {
     texture.format = RGBAFormat;
     texture.needsUpdate = true;
 
-    const material = new MeshStandardMaterial({
+    const material = new MeshBasicMaterial({
       map: texture,
       transparent: true,
       depthWrite: false,
       depthTest: true,
       alphaTest: 0.5,
       side: DoubleSide,
-      premultipliedAlpha: false,
     });
 
     const layer = new Mesh(new PlaneGeometry(1, 1), material);
@@ -499,14 +498,13 @@ export class Ship {
     y: number,
     aspect: number,
   ): Mesh {
-    const material = new MeshStandardMaterial({
+    const material = new MeshBasicMaterial({
       map: texture,
       transparent: true,
       depthWrite: false,
       depthTest: true,
       alphaTest: 0.5,
       side: DoubleSide,
-      premultipliedAlpha: false,
     });
 
     const layer = new Mesh(new PlaneGeometry(aspect, 1), material);
