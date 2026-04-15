@@ -49,6 +49,7 @@ export class Ship {
   public readonly velocity = new Vector3();
   public readonly splashAnchor = new Vector3();
   public readonly stackGroup = new Group();
+  private readonly detailGroup = new Group();
 
   private readonly input: InputState = { up: false, down: false, left: false, right: false };
   private readonly acceleration = 28;
@@ -104,8 +105,11 @@ export class Ship {
           this.buildProceduralStack();
         }
       }
+      this.detailGroup.name = "detailGroup";
       this.stackGroup.rotation.y = this.visualYawOffset;
+      this.detailGroup.rotation.y = this.visualYawOffset;
       this.mesh.add(this.stackGroup);
+      this.mesh.add(this.detailGroup);
       this.addSpriteDeckDetails();
       this.hullShadow = this.addHullShadow();
       this.mesh.position.y = this.stackBaseY;
@@ -168,6 +172,8 @@ export class Ship {
       const targetRotation = Math.atan2(this.velocity.x, this.velocity.z) + this.visualYawOffset;
       if (this.stackGroup.children.length > 0) {
         this.stackGroup.rotation.y = MathUtils.lerp(this.stackGroup.rotation.y, targetRotation, 0.15);
+        // Keep detail meshes locked to the same yaw as the sprite stack.
+        this.detailGroup.rotation.y = this.stackGroup.rotation.y;
       } else {
         this.mesh.rotation.y = MathUtils.lerp(this.mesh.rotation.y, targetRotation, 0.15);
       }
@@ -250,25 +256,27 @@ export class Ship {
           ? { tint: 0xb6c0cc, emissive: 0x0b1723, emissiveIntensity: 0.13, roughness: 0.74, metalness: 0.16 }
           : { tint: 0xd3c0ad, emissive: 0x12151d, emissiveIntensity: 0.07, roughness: 0.64, metalness: 0.2 };
 
-    const target = this.visualMode === "sprite" ? this.stackGroup : this.mesh;
-    target.traverse((child) => {
-      const childMesh = child as Mesh;
-      if (!("material" in childMesh)) {
-        return;
-      }
-      const mat = childMesh.material;
-      const materials = Array.isArray(mat) ? mat : [mat];
-      for (const material of materials) {
-        if (!(material instanceof MeshStandardMaterial)) {
-          continue;
+    const targets = this.visualMode === "sprite" ? [this.stackGroup, this.detailGroup] : [this.mesh];
+    for (const target of targets) {
+      target.traverse((child) => {
+        const childMesh = child as Mesh;
+        if (!("material" in childMesh)) {
+          return;
         }
-        material.color.setHex(preset.tint);
-        material.emissive.setHex(preset.emissive);
-        material.emissiveIntensity = preset.emissiveIntensity;
-        material.roughness = preset.roughness;
-        material.metalness = preset.metalness;
-      }
-    });
+        const mat = childMesh.material;
+        const materials = Array.isArray(mat) ? mat : [mat];
+        for (const material of materials) {
+          if (!(material instanceof MeshStandardMaterial)) {
+            continue;
+          }
+          material.color.setHex(preset.tint);
+          material.emissive.setHex(preset.emissive);
+          material.emissiveIntensity = preset.emissiveIntensity;
+          material.roughness = preset.roughness;
+          material.metalness = preset.metalness;
+        }
+      });
+    }
   }
 
   private createHullPiece(): Group {
@@ -289,34 +297,34 @@ export class Ship {
     const plateMaterial = new MeshStandardMaterial({ color: 0x3e434d, roughness: 0.66, metalness: 0.26 });
 
     const rearFunnel = new Mesh(new CylinderGeometry(0.12, 0.16, 0.68, 10), funnelMaterial);
-    rearFunnel.position.set(-0.55, 0.9, -0.12);
-    this.mesh.add(rearFunnel);
+    rearFunnel.position.set(-0.38, 0.82, 0.1);
+    this.detailGroup.add(rearFunnel);
     this.spriteDetailMeshes.push(rearFunnel);
 
     const frontFunnel = new Mesh(new CylinderGeometry(0.1, 0.14, 0.58, 10), funnelMaterial);
-    frontFunnel.position.set(0.42, 0.76, 0.25);
-    this.mesh.add(frontFunnel);
+    frontFunnel.position.set(0.3, 0.7, -0.2);
+    this.detailGroup.add(frontFunnel);
     this.spriteDetailMeshes.push(frontFunnel);
 
     const cabin = new Mesh(new BoxGeometry(0.5, 0.2, 0.36), cabinMaterial);
     cabin.scale.set(1.4, 1, 1.2);
-    cabin.position.set(0.06, 0.62, -0.05);
-    this.mesh.add(cabin);
+    cabin.position.set(-0.04, 0.56, 0.06);
+    this.detailGroup.add(cabin);
     this.spriteDetailMeshes.push(cabin);
 
     const roof = new Mesh(new BoxGeometry(0.42, 0.08, 0.3), brassMaterial);
-    roof.position.set(0.06, 0.78, -0.05);
-    this.mesh.add(roof);
+    roof.position.set(-0.04, 0.7, 0.06);
+    this.detailGroup.add(roof);
     this.spriteDetailMeshes.push(roof);
 
     const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateLeft.position.set(-0.94, 0.52, -0.05);
-    this.mesh.add(sidePlateLeft);
+    sidePlateLeft.position.set(-0.9, 0.5, 0.06);
+    this.detailGroup.add(sidePlateLeft);
     this.spriteDetailMeshes.push(sidePlateLeft);
 
     const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
-    sidePlateRight.position.set(0.94, 0.52, -0.05);
-    this.mesh.add(sidePlateRight);
+    sidePlateRight.position.set(0.9, 0.5, 0.06);
+    this.detailGroup.add(sidePlateRight);
     this.spriteDetailMeshes.push(sidePlateRight);
   }
 
@@ -446,7 +454,7 @@ export class Ship {
 
     const disposedMaterials = new Set<MeshStandardMaterial>();
     for (const detail of this.spriteDetailMeshes) {
-      this.mesh.remove(detail);
+      this.detailGroup.remove(detail);
       detail.geometry.dispose();
       const material = detail.material as MeshStandardMaterial;
       if (!disposedMaterials.has(material)) {
@@ -454,6 +462,7 @@ export class Ship {
         disposedMaterials.add(material);
       }
     }
+    this.detailGroup.clear();
     this.spriteDetailMeshes.length = 0;
   }
 
