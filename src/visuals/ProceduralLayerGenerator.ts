@@ -20,59 +20,84 @@ export class ProceduralLayerGenerator {
     return canvas;
   }
 
-  private drawSteamboatLayer(ctx: CanvasRenderingContext2D, index: number, totalLayers: number): void {
-    const hullDark = "#1e130b";
-    const hullMid = "#4a3020";
-    const deckDark = "#7c5538";
-    const deckLight = "#9c7a5e";
+  private drawSteamboatLayer(ctx: CanvasRenderingContext2D, index: number, _totalLayers: number): void {
+    const hullDark    = "#1e130b";
+    const hullMid     = "#4a3020";
+    const deckDark    = "#7c5538";
+    const deckLight   = "#9c7a5e";
     const detailLight = "#8f969f";
-    const detailDark = "#353b44";
+    const detailDark  = "#353b44";
 
-    // Simple boat profile: lower hull, deck, then compact stern cabin.
-    if (index <= 4) {
-      const width = 24 - index * 0.95;
-      const sternY = 53 - index * 0.5;
-      const bowY = 10 + index * 0.85;
-      this.drawTaperedHull(ctx, width, bowY, sternY, index < 3 ? hullDark : hullMid);
-
-      if (index <= 2) {
-        // Dark stripe near the hull's widest section to fake a painted keel/waterline break.
+    // ── Zone A: Hull (layers 0–3) ─────────────────────────────────────────
+    // 10 px width taper + 8 px bow/stern movement so the isometric camera
+    // clearly reads depth rather than a flat disc.
+    if (index <= 3) {
+      const t      = index / 3;
+      const width  = 26 - t * 10;   // 26 → 16
+      const bowY   =  8 + t *  8;   //  8 → 16
+      const sternY = 55 - t *  8;   // 55 → 47
+      this.drawTaperedHull(ctx, width, bowY, sternY, index < 2 ? hullDark : hullMid);
+      if (index <= 1) {
         ctx.fillStyle = "#120b07";
-        const stripeWidth = width * 1.65;
-        ctx.fillRect(32 - stripeWidth * 0.5, 31, stripeWidth, 2);
+        ctx.fillRect(32 - width * 0.8, 32, width * 1.6, 2);
       }
       return;
     }
 
-    if (index <= 10) {
-      const width = 19 - (index - 4) * 0.72;
-      const sternY = 49 - (index - 4) * 0.45;
-      const bowY = 14 + (index - 4) * 0.68;
-      const layerColor = index <= 7 ? hullMid : index % 2 === 0 ? deckLight : deckDark;
+    // ── Zone B: Deck (layers 4–9) ─────────────────────────────────────────
+    // Hull continues to narrow; planks appear; wheelhouse appears on 7–9
+    // and itself shrinks each step so it never reads as a silo.
+    if (index <= 9) {
+      const t      = (index - 4) / 5;   // 0 → 1 across 6 steps
+      const width  = 15 - t * 8;        // 15 → 7
+      const bowY   = 17 + t * 6;        // 17 → 23
+      const sternY = 47 - t * 7;        // 47 → 40
+      const layerColor =
+        index <= 5 ? hullMid :
+        index <= 7 ? deckDark :
+                     deckLight;
       this.drawTaperedHull(ctx, width, bowY, sternY, layerColor);
       this.drawPlankLines(ctx, detailDark);
 
-      // Small wheelhouse/cabin near stern.
       if (index >= 7) {
-        ctx.fillStyle = detailLight;
-        ctx.fillRect(24, 37, 16, 8);
-        ctx.fillStyle = detailDark;
-        ctx.fillRect(26, 39, 3, 3);
-        ctx.fillRect(31, 39, 3, 3);
-        ctx.fillRect(36, 39, 3, 3);
-        ctx.fillStyle = "#8f5a3f";
-        ctx.fillRect(24, 44, 16, 2);
+        const step = index - 7;          // 0, 1, 2
+        const whW  = 14 - step * 2;      // 14 → 10
+        const whH  =  7 - step * 1;      //  7 →  5
+        const whX  = 32 - whW / 2;
+        ctx.fillStyle = "#c4a882";        // warm tan — was detailLight (grey)
+        ctx.fillRect(whX, 38, whW, whH);
+        if (whW >= 12) {
+          ctx.fillStyle = detailDark;
+          ctx.fillRect(whX + 2, 40, 3, 3);
+          ctx.fillRect(whX + 5, 40, 3, 3);
+          ctx.fillRect(whX + 9, 40, 3, 3);
+        }
       }
       return;
     }
 
-    // Top cap layers: keep low profile and avoid tower look.
-    const t = (index - 9) / Math.max(1, totalLayers - 10);
-    this.drawTaperedHull(ctx, 12.5 - t * 1.4, 20, 41, deckDark);
-    ctx.fillStyle = detailLight;
-    ctx.fillRect(25, 38, 14, 5);
+    // ── Zone C: Cabin roof (layers 10–13) ─────────────────────────────────
+    // No hull silhouette — drawTaperedHull here produced a visible brown oval
+    // above the wheelhouse. Just a shrinking roof strip in warm wood tone.
+    if (index <= 13) {
+      const roofW = Math.max(2, 8 - (index - 10) * 2);   // 8 → 2
+      ctx.fillStyle = deckDark;
+      ctx.fillRect(32 - roofW / 2, 37, roofW, 3);
+      return;
+    }
+
+    // ── Zone D: Smokestack tip only (layers 14–15) ───────────────────────
+    // Hollow dark circle — reads as a pipe not a silo because it appears
+    // only in the topmost 2 slices with no hull shape behind it.
+    const stackR = index === 14 ? 4 : 3;
     ctx.fillStyle = detailDark;
-    ctx.fillRect(27, 38, 10, 2);
+    ctx.beginPath();
+    ctx.arc(32, 30, stackR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#555f6a";
+    ctx.beginPath();
+    ctx.arc(32, 30, stackR - 1.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   private drawTaperedHull(

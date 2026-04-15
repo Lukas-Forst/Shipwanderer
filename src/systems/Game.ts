@@ -501,9 +501,7 @@ export class Game {
 
   private updateOutlineTargets(): void {
     const targets: Object3D[] = [this.ship.mesh];
-    for (const enemy of this.enemyManager.getAll()) {
-      targets.push(enemy.mesh);
-    }
+    // Enemies excluded: depthWrite:false sprite stacks can become solid-black in outline pass.
     targets.push(...this.resourceManager.getScrapMeshes());
     this.outlinePass.selectedObjects = targets;
   }
