@@ -6,6 +6,7 @@ import {
   Group,
   MathUtils,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   NearestFilter,
   Object3D,
@@ -78,6 +79,8 @@ export class Ship {
   private readonly visualYawOffset = Math.PI / 2;
   /** GPU textures we created for the stack (tiles or cropped sheet); disposed in `dispose`. */
   private readonly stackOwnedTextures: Texture[] = [];
+  private hullShadow: Mesh | null = null;
+  private readonly spriteDetailMeshes: Mesh[] = [];
   private visualMode: VisualMode;
 
   public constructor(
@@ -102,8 +105,9 @@ export class Ship {
         }
       }
       this.stackGroup.rotation.y = this.visualYawOffset;
-      this.addSpriteDeckDetails();
       this.mesh.add(this.stackGroup);
+      this.addSpriteDeckDetails();
+      this.hullShadow = this.addHullShadow();
       this.mesh.position.y = this.stackBaseY;
     } else {
       this.mesh.add(hullModel);
@@ -122,6 +126,7 @@ export class Ship {
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     this.disposeOwnedStackLayers();
+    this.disposeSpriteExtras();
   }
 
   public update(deltaSeconds: number, moveForward: Vector3, moveRight: Vector3): void {
@@ -284,33 +289,55 @@ export class Ship {
     const plateMaterial = new MeshStandardMaterial({ color: 0x3e434d, roughness: 0.66, metalness: 0.26 });
 
     const rearFunnel = new Mesh(new CylinderGeometry(0.12, 0.16, 0.68, 10), funnelMaterial);
-    rearFunnel.position.set(-0.22, 0.34, -0.05);
-    this.stackGroup.add(rearFunnel);
+    rearFunnel.position.set(-0.55, 0.9, -0.12);
+    this.mesh.add(rearFunnel);
+    this.spriteDetailMeshes.push(rearFunnel);
 
     const frontFunnel = new Mesh(new CylinderGeometry(0.1, 0.14, 0.58, 10), funnelMaterial);
-    frontFunnel.position.set(0.18, 0.3, 0.1);
-    this.stackGroup.add(frontFunnel);
+    frontFunnel.position.set(0.42, 0.76, 0.25);
+    this.mesh.add(frontFunnel);
+    this.spriteDetailMeshes.push(frontFunnel);
 
     const cabin = new Mesh(new BoxGeometry(0.5, 0.2, 0.36), cabinMaterial);
-    cabin.position.set(0.03, 0.2, -0.02);
-    this.stackGroup.add(cabin);
+    cabin.scale.set(1.4, 1, 1.2);
+    cabin.position.set(0.06, 0.62, -0.05);
+    this.mesh.add(cabin);
+    this.spriteDetailMeshes.push(cabin);
 
     const roof = new Mesh(new BoxGeometry(0.42, 0.08, 0.3), brassMaterial);
-    roof.position.set(0.03, 0.31, -0.02);
-    this.stackGroup.add(roof);
+    roof.position.set(0.06, 0.78, -0.05);
+    this.mesh.add(roof);
+    this.spriteDetailMeshes.push(roof);
 
-    const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.11, 0.42), plateMaterial);
-    sidePlateLeft.position.set(-0.34, 0.08, -0.02);
-    this.stackGroup.add(sidePlateLeft);
+    const sidePlateLeft = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
+    sidePlateLeft.position.set(-0.94, 0.52, -0.05);
+    this.mesh.add(sidePlateLeft);
+    this.spriteDetailMeshes.push(sidePlateLeft);
 
-    const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.11, 0.42), plateMaterial);
-    sidePlateRight.position.set(0.34, 0.08, -0.02);
-    this.stackGroup.add(sidePlateRight);
+    const sidePlateRight = new Mesh(new BoxGeometry(0.06, 0.3, 0.42), plateMaterial);
+    sidePlateRight.position.set(0.94, 0.52, -0.05);
+    this.mesh.add(sidePlateRight);
+    this.spriteDetailMeshes.push(sidePlateRight);
+  }
+
+  private addHullShadow(): Mesh {
+    const geometry = new PlaneGeometry(3.2, 2);
+    const material = new MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+    });
+    const shadow = new Mesh(geometry, material);
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -0.04;
+    this.mesh.add(shadow);
+    return shadow;
   }
 
   private buildProceduralStack(): void {
-    const totalLayers = 12;
-    const dy = 0.045;
+    const totalLayers = 16;
+    const dy = 0.065;
     for (let index = 0; index < totalLayers; index += 1) {
       const canvas = this.layerGenerator.generateLayerCanvas(index, totalLayers, "hull");
       const layer = this.createStackLayer(canvas, index, index * dy);
@@ -325,7 +352,7 @@ export class Ship {
   private buildStackFromSliceImages(slices: ShipStackSliceSource[]): void {
     const layerCount = slices.length;
     // Push more vertical separation for lower slice counts so ships do not read as flat pancakes.
-    const dy = layerCount >= 22 ? 0.018 : layerCount >= 18 ? 0.023 : layerCount >= 14 ? 0.031 : 0.036;
+    const dy = layerCount >= 22 ? 0.025 : layerCount >= 18 ? 0.033 : layerCount >= 14 ? 0.044 : 0.052;
 
     for (let i = 0; i < layerCount; i += 1) {
       const image = slices[i];
@@ -346,7 +373,7 @@ export class Ship {
       this.stackGroup.add(layer);
     }
 
-    const yScale = layerCount >= 22 ? 0.78 : layerCount >= 18 ? 0.9 : layerCount >= 14 ? 1.05 : 1.16;
+    const yScale = layerCount >= 22 ? 0.62 : layerCount >= 18 ? 0.72 : layerCount >= 14 ? 0.84 : 0.92;
     this.stackGroup.scale.set(2.75, yScale, 2.75);
   }
 
@@ -358,9 +385,8 @@ export class Ship {
     this.stackOwnedTextures.push(...textures);
 
     const layerCount = textures.length;
-    // Tight stepping so the stack reads like classic sprite-sandwich / isometric refs
-    // (many thin slices, small world-space gap between layers).
-    const dy = layerCount >= 20 ? 0.022 : layerCount >= 15 ? 0.028 : 0.034;
+    // Slightly larger stepping improves depth cues while preserving overall hull height with y-scale.
+    const dy = layerCount >= 20 ? 0.032 : layerCount >= 15 ? 0.04 : 0.05;
 
     for (let i = 0; i < layerCount; i += 1) {
       const texture = textures[i];
@@ -371,7 +397,7 @@ export class Ship {
       this.stackGroup.add(layer);
     }
 
-    const yScale = layerCount >= 20 ? 0.86 : layerCount >= 15 ? 0.97 : 1.08;
+    const yScale = layerCount >= 20 ? 0.7 : layerCount >= 15 ? 0.79 : 0.88;
     this.stackGroup.scale.set(3.05, yScale, 3.05);
   }
 
@@ -396,6 +422,39 @@ export class Ship {
     }
     this.stackGroup.clear();
     this.stackOwnedTextures.length = 0;
+  }
+
+  private disposeSpriteExtras(): void {
+    if (this.hullShadow) {
+      this.mesh.remove(this.hullShadow);
+      const shadowGeometry = this.hullShadow.geometry;
+      const shadowMaterial = this.hullShadow.material;
+      shadowGeometry.dispose();
+      if (Array.isArray(shadowMaterial)) {
+        for (const material of shadowMaterial) {
+          material.dispose();
+        }
+      } else {
+        shadowMaterial.dispose();
+      }
+      this.hullShadow = null;
+    }
+
+    if (this.spriteDetailMeshes.length === 0) {
+      return;
+    }
+
+    const disposedMaterials = new Set<MeshStandardMaterial>();
+    for (const detail of this.spriteDetailMeshes) {
+      this.mesh.remove(detail);
+      detail.geometry.dispose();
+      const material = detail.material as MeshStandardMaterial;
+      if (!disposedMaterials.has(material)) {
+        material.dispose();
+        disposedMaterials.add(material);
+      }
+    }
+    this.spriteDetailMeshes.length = 0;
   }
 
   private createStackLayer(canvas: HTMLCanvasElement, renderOrder: number, y: number): Mesh {

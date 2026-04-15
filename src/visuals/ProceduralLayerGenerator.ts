@@ -21,9 +21,9 @@ export class ProceduralLayerGenerator {
   }
 
   private drawSteamboatLayer(ctx: CanvasRenderingContext2D, index: number, totalLayers: number): void {
-    const hullDark = "#2f241b";
-    const hullMid = "#473528";
-    const deckDark = "#6c4b34";
+    const hullDark = "#1e130b";
+    const hullMid = "#4a3020";
+    const deckDark = "#7c5538";
     const deckLight = "#9c7a5e";
     const detailLight = "#8f969f";
     const detailDark = "#353b44";
@@ -34,14 +34,22 @@ export class ProceduralLayerGenerator {
       const sternY = 53 - index * 0.5;
       const bowY = 10 + index * 0.85;
       this.drawTaperedHull(ctx, width, bowY, sternY, index < 3 ? hullDark : hullMid);
+
+      if (index <= 2) {
+        // Dark stripe near the hull's widest section to fake a painted keel/waterline break.
+        ctx.fillStyle = "#120b07";
+        const stripeWidth = width * 1.65;
+        ctx.fillRect(32 - stripeWidth * 0.5, 31, stripeWidth, 2);
+      }
       return;
     }
 
-    if (index <= 8) {
-      const width = 18 - (index - 5) * 0.75;
-      const sternY = 49 - (index - 5) * 0.45;
-      const bowY = 15 + (index - 5) * 0.7;
-      this.drawTaperedHull(ctx, width, bowY, sternY, index % 2 === 0 ? deckLight : deckDark);
+    if (index <= 10) {
+      const width = 19 - (index - 4) * 0.72;
+      const sternY = 49 - (index - 4) * 0.45;
+      const bowY = 14 + (index - 4) * 0.68;
+      const layerColor = index <= 7 ? hullMid : index % 2 === 0 ? deckLight : deckDark;
+      this.drawTaperedHull(ctx, width, bowY, sternY, layerColor);
       this.drawPlankLines(ctx, detailDark);
 
       // Small wheelhouse/cabin near stern.
@@ -77,9 +85,13 @@ export class ProceduralLayerGenerator {
     const cx = 32;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(cx, bowY);
+    // Tiny vertical segment at the tip creates a sharper bow point than a pure bezier start.
+    ctx.moveTo(cx, bowY + 2);
+    ctx.lineTo(cx, bowY);
     ctx.bezierCurveTo(cx + halfWidth, bowY + 10, cx + halfWidth, sternY - 8, cx + halfWidth * 0.75, sternY);
     ctx.lineTo(cx - halfWidth * 0.75, sternY);
+    // Slight stern notch makes rear profile read differently from the bow.
+    ctx.lineTo(cx, sternY + 4);
     ctx.bezierCurveTo(cx - halfWidth, sternY - 8, cx - halfWidth, bowY + 10, cx, bowY);
     ctx.closePath();
     ctx.fill();
@@ -88,7 +100,7 @@ export class ProceduralLayerGenerator {
   private drawPlankLines(ctx: CanvasRenderingContext2D, color: string): void {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
-    for (let y = 24; y <= 44; y += 6) {
+    for (let y = 24; y <= 44; y += 5) {
       ctx.beginPath();
       ctx.moveTo(17, y);
       ctx.lineTo(47, y);
